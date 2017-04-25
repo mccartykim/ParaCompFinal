@@ -1,3 +1,6 @@
 *.o
 *.jpg
 *.tar.gz
+a.out
+out.pgm
+bath.ppm
