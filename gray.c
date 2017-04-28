@@ -21,12 +21,14 @@
   ./a.out
 
   I suggest you copy and paste this code into a new file and edit it for parallel implementations
+
+  I will merge it into the main method manually.
 */
 
 //Standard includes
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <time.h>
 
 //Method declarations
 int *tograyscale(int* image, int width, int height);
@@ -40,6 +42,8 @@ int main(){
   FILE *fp, *ofp;
   fp = fopen("in.ppm", "r");
 
+  clock_t t;
+
   /* read image */
   int *image;
   image= loadimage(fp);
@@ -50,7 +54,18 @@ int main(){
 
   /* convert image */
   int* grayscale;
+
+  //Around function call, we log the start
+  printf("Starting the clock and converting image with serial algorithm\n");
+  t = clock();
   grayscale = tograyscale(image, width, height);
+  //Then we log the time when we finished
+  //And we print the difference
+  t = clock()-t;
+  float secs = ((float)t)/CLOCKS_PER_SEC;
+  printf("Serial conversion took %d cpu ticks, or %.3f seconds\n", (int) t, secs);
+
+  //Now that we're off the clock, free up the memory we used for the unprocessed image, before we get to work saving the image
   free(image);
 
 
@@ -104,7 +119,6 @@ int get_width(FILE *f){
 
   //integers for last pixel's colors
   fscanf(f, "%s", buff);
-  printf(buff);
   fscanf(f, "%d", &width);
   fscanf(f, "%d", &height);
 
@@ -124,7 +138,6 @@ int get_height(FILE *f){
 
   //integers for last pixel's colors
   fscanf(f, "%s", buff);
-  printf(buff);
   fscanf(f, "%d", &width);
   fscanf(f, "%d", &height);
 
