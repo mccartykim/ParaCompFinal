@@ -36,6 +36,7 @@ int *loadimage(FILE *f);
 void save_image(FILE *o, int* image, int width, int height);
 int get_width(FILE *f);
 int get_height(FILE *f);
+int *tograyscale_openmp(int* image, int width, int height);
 
 int main(){
   //Create file pointer to input
@@ -50,6 +51,7 @@ int main(){
   int width = get_width(fp);
   int height = get_height(fp);
   fclose(fp);
+  printf("Image is %dx%d, or %d values of data!\n", width, height, width*height*3);
 
 
   /* convert image */
@@ -158,22 +160,42 @@ int *tograyscale(int* image, int width, int height){
   //allocate a memory buffer for that many bytes...
   int * grayscales = (int *) malloc(fields * sizeof(int));
   for (int i = 0; i < color_fields; i++){
-    /* Got a tad in the c syntax here.
-     fscanf: read a bit of text that matches the pattern %d (an integer)
-     and write that to a field in colors, modulo 3 for if it's a red, green, or blue cell.
-    */
     colors[i%3] = image[i];
     if (i % 3 == 2){
       int max = 0;
       int min = 255;
       for (int n = 0; n < 3; n++){
         if (max < colors[n]) max = colors[n];
-        if (min < colors[n]) min = colors[n];
+        if (min > colors[n]) min = colors[n];
       }
       grayscale = (max + min) / 2; //desaturate by averaging brightest and darkest channel
       grayscales[i/3] =  grayscale;
     }
   }
+  return grayscales;
+
+}//Take a one-dimensional array of subpixel values and the images resolution
+//And output a grayscale array
+//In parallel with openmp
+int *tograyscale_openmp(int* image, int width, int height){
+  //integers for last pixel's colors
+  int grayscale;
+
+  int fields = width*height; //three channels of color (red green blue)
+  int color_fields = fields * 3;
+
+  //allocate a memory buffer for that many bytes...
+  int * grayscales = (int *) malloc(fields * sizeof(int));
+  for (int i = 0; i < color_fields; i += 3){
+    int max = 0;
+    int min = 255;
+    for (int n = 0; n < 3; n++){
+      if (max < image[i+n]) max = image[i+n];
+      if (min > image[i+n]) min = image[i+n];
+    }
+    grayscale = (max + min) / 2; //desaturate by averaging brightest and darkest channel
+    grayscales[i/3] =  grayscale;
+    }
   return grayscales;
 }
 
