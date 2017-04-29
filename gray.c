@@ -38,10 +38,10 @@ int get_width(FILE *f);
 int get_height(FILE *f);
 int *tograyscale_openmp(int* image, int width, int height);
 
-int main(){
+int main(int argc, char **argv){
   //Create file pointer to input
   FILE *fp, *ofp;
-  fp = fopen("in.ppm", "r");
+  fp = fopen(argv[1], "r");
 
   clock_t t;
 
@@ -64,12 +64,25 @@ int main(){
   //Then we log the time when we finished
   //And we print the difference
   t = clock()-t;
+  int serial_ticks = (int) t;
   float secs = ((float)t)/CLOCKS_PER_SEC;
   printf("Serial conversion took %d cpu ticks, or %.3f seconds\n", (int) t, secs);
+
+  //Do it again, but with OpenMP
+  printf("Starting the clock and converting image with OpenMP algorithm\n");
+  t = clock();
+  grayscale = tograyscale_openmp(image, width, height);
+  //Then we log the time when we finished
+  //And we print the difference
+  t = clock()-t;
+  int openmp_ticks = (int) t;
+  secs = ((float)t)/CLOCKS_PER_SEC;
+  printf("OpenMP conversion took %d cpu ticks, or %.3f seconds\n", (int) t, secs);
 
   //Now that we're off the clock, free up the memory we used for the unprocessed image, before we get to work saving the image
   free(image);
 
+  printf("OpenMP speedup is %f.2\n", serial_ticks/(1.0*openmp_ticks));
 
   /* save image to output file pointer */
   ofp = fopen("out.pgm", "w");
@@ -186,6 +199,7 @@ int *tograyscale_openmp(int* image, int width, int height){
 
   //allocate a memory buffer for that many bytes...
   int * grayscales = (int *) malloc(fields * sizeof(int));
+#pragma omp parallel for shared(image, grayscales) private(grayscale)
   for (int i = 0; i < color_fields; i += 3){
     int max = 0;
     int min = 255;

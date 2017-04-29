@@ -13,3 +13,15 @@ In our case, we have a three-channel (Red, Green, Blue) image with one byte for 
 In the output, we have one grayscale value per pixel.
 
 Our algorithm: gray_pix = (max(red, green, blue) + min(red, green, blue))/2
+
+To run:
+Ensure you have downloaded or converted an appropriate image.
+This can be done with imagemagick, a popular free and open source image tool. Example:
+convert SOURCEIMAGE -compress none in.ppm
+
+Compilation on Linux:
+gcc -fopenmp gray.c -o a.out
+Run ./a.out in.ppm
+
+The program reads whatever .ppm image is specified in the argument, and outputs out.pgm, which is a grayscale bitmap.
+
