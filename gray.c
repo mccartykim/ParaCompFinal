@@ -23,12 +23,15 @@
   I suggest you copy and paste this code into a new file and edit it for parallel implementations
 
   I will merge it into the main method manually.
+
+  MPI implementation from Ian Stypulkoski
 */
 
 //Standard includes
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <mpi.h>
 
 //Method declarations
 int *tograyscale(int* image, int width, int height);
@@ -37,6 +40,7 @@ void save_image(FILE *o, int* image, int width, int height);
 int get_width(FILE *f);
 int get_height(FILE *f);
 int *tograyscale_openmp(int* image, int width, int height);
+int *tograyscale_mpi(int* image, int width, int height);
 
 int main(int argc, char **argv){
   //Create file pointer to input
@@ -79,10 +83,23 @@ int main(int argc, char **argv){
   secs = ((float)t)/CLOCKS_PER_SEC;
   printf("OpenMP conversion took %d cpu ticks, or %.3f seconds\n", (int) t, secs);
 
+  //Do it again, but with OpenMP
+  printf("Starting the clock and converting image with MPI algorithm\n");
+  t = clock();
+  grayscale = tograyscale_mpi(image, width, height);
+  //Then we log the time when we finished
+  //And we print the difference
+  t = clock()-t;
+  int mpi_ticks = (int) t;
+  secs = ((float)t)/CLOCKS_PER_SEC;
+  printf("MPI conversion took %d cpu ticks, or %.3f seconds\n", (int) t, secs);
+
+
   //Now that we're off the clock, free up the memory we used for the unprocessed image, before we get to work saving the image
   free(image);
 
   printf("OpenMP speedup is %f.2\n", serial_ticks/(1.0*openmp_ticks));
+  printf("MPI speedup is %f.2\n", serial_ticks/(1.0*mpi_ticks));
 
   /* save image to output file pointer */
   ofp = fopen("out.pgm", "w");
@@ -210,6 +227,47 @@ int *tograyscale_openmp(int* image, int width, int height){
     grayscale = (max + min) / 2; //desaturate by averaging brightest and darkest channel
     grayscales[i/3] =  grayscale;
     }
+  return grayscales;
+}
+
+//Take a one-dimensional array of subpixel values and the images resolution
+//And output a grayscale array
+//using the mpi api
+int *tograyscale_mpi(int* image, int width, int height){
+  //integers for last pixel's colors
+  int grayscale;
+
+  int fields = width*height; //three channels of color (red green blue)
+  int color_fields = fields * 3;
+
+  //allocate a memory buffer for that many bytes...
+  int * grayscales = (int *) malloc(fields * sizeof(int));
+
+  //Values for MPI
+  int comm_sz;
+  int my_rank;
+
+  // Start MPI
+  MPI_Init(NULL, NULL);
+  //Get number of processes
+  MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
+  //Get rank among processes
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+
+  for (int i = my_rank * 3; i < color_fields; i += (3 * comm_sz)){
+    int max = 0;
+    int min = 255;
+    for (int n = 0; n < 3; n++){
+      if (max < image[i+n]) max = image[i+n];
+      if (min > image[i+n]) min = image[i+n];
+    }
+    grayscale = (max + min) / 2; //desaturate by averaging brightest and darkest channel
+    grayscales[i/3] =  grayscale;
+  }
+
+  //End MPI
+  MPI_Finalize();
+
   return grayscales;
 }
 
