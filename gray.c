@@ -16,7 +16,7 @@
 
 
   Compilation:
-  gcc gray.c
+  mpicc -openmp gray.c
   Running (on unix-y systems):
   ./a.out
 
@@ -45,9 +45,15 @@ int *tograyscale_mpi(int* image, int width, int height);
 int main(int argc, char **argv){
   //Create file pointer to input
   FILE *fp, *ofp;
-  fp = fopen(argv[1], "r");
 
   clock_t t;
+
+  if (argc == 1){
+    fp = stdin;
+  }
+  else{
+    fp = fopen(argv[1], "r");
+  }
 
   /* read image */
   int *image;

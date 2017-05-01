@@ -20,7 +20,7 @@ This can be done with imagemagick, a popular free and open source image tool. Ex
 convert SOURCEIMAGE -compress none in.ppm
 
 Compilation on Linux:
-gcc -fopenmp gray.c -o a.out
+mpicc -openmp gray.c -o a.out
 Run ./a.out in.ppm
 
 The program reads whatever .ppm image is specified in the argument, and outputs out.pgm, which is a grayscale bitmap.
