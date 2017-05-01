@@ -48,12 +48,7 @@ int main(int argc, char **argv){
 
   clock_t t;
 
-  if (argc == 1){
-    fp = stdin;
-  }
-  else{
-    fp = fopen(argv[1], "r");
-  }
+  fp = fopen(argv[1], "r");
 
   /* read image */
   int *image;
