@@ -42,11 +42,17 @@ int get_height(FILE *f);
 int *tograyscale_openmp(int* image, int width, int height);
 int *tograyscale_mpi(int* image, int width, int height);
 
+//Return time in nanosecs since last called
+long nsec_diff(struct timespec *start);
+
 int main(int argc, char **argv){
   //Create file pointer to input
   FILE *fp, *ofp;
 
-  clock_t t;
+  long nsec;
+  //initialize ts
+  struct timespec ts;
+  clock_gettime(CLOCK_REALTIME, &ts);
 
   fp = fopen(argv[1], "r");
 
@@ -64,43 +70,43 @@ int main(int argc, char **argv){
 
   //Around function call, we log the start
   printf("Starting the clock and converting image with serial algorithm\n");
-  t = clock();
+  nsec_diff(&ts);
   grayscale = tograyscale(image, width, height);
   //Then we log the time when we finished
   //And we print the difference
-  t = clock()-t;
-  int serial_ticks = (int) t;
-  float secs = ((float)t)/CLOCKS_PER_SEC;
-  printf("Serial conversion took %d cpu ticks, or %.3f seconds\n", (int) t, secs);
+  nsec = nsec_diff(&ts);
+  long serial_ticks = nsec;
+  float secs = ((float)nsec)/1000000000;
+  printf("Serial conversion took %d nanoseconds, or %.3f seconds\n", (int) nsec, secs);
 
   //Do it again, but with OpenMP
   printf("Starting the clock and converting image with OpenMP algorithm\n");
-  t = clock();
+  nsec = nsec_diff(&ts);
   grayscale = tograyscale_openmp(image, width, height);
   //Then we log the time when we finished
   //And we print the difference
-  t = clock()-t;
-  int openmp_ticks = (int) t;
-  secs = ((float)t)/CLOCKS_PER_SEC;
-  printf("OpenMP conversion took %d cpu ticks, or %.3f seconds\n", (int) t, secs);
+  nsec = nsec_diff(&ts);
+  long openmp_ticks = nsec;
+  secs = ((float)nsec)/1000000000;
+  printf("OpenMP conversion took %d nanoseconds, or %.3f seconds\n", (int) nsec, secs);
 
-  //Do it again, but with OpenMP
+  //Do it again, but with MPI
   printf("Starting the clock and converting image with MPI algorithm\n");
-  t = clock();
+  nsec = nsec_diff(&ts);
   grayscale = tograyscale_mpi(image, width, height);
   //Then we log the time when we finished
   //And we print the difference
-  t = clock()-t;
-  int mpi_ticks = (int) t;
-  secs = ((float)t)/CLOCKS_PER_SEC;
-  printf("MPI conversion took %d cpu ticks, or %.3f seconds\n", (int) t, secs);
+  nsec = nsec_diff(&ts);
+  long mpi_ticks = nsec;
+  secs = ((float)nsec)/1000000000;
+  printf("MPI conversion took %d nanoseconds, or %.3f seconds\n", (int) nsec, secs);
 
 
   //Now that we're off the clock, free up the memory we used for the unprocessed image, before we get to work saving the image
   free(image);
 
-  printf("OpenMP speedup is %f.2\n", serial_ticks/(1.0*openmp_ticks));
-  printf("MPI speedup is %f.2\n", serial_ticks/(1.0*mpi_ticks));
+  printf("OpenMP speedup is %.2f\n", serial_ticks/(1.0*openmp_ticks));
+  printf("MPI speedup is %.2f\n", serial_ticks/(1.0*mpi_ticks));
 
   /* save image to output file pointer */
   ofp = fopen("out.pgm", "w");
@@ -110,6 +116,16 @@ int main(int argc, char **argv){
 
   //Done!
   return 0;
+}
+
+//Return time in nanosecs since last called
+long nsec_diff(struct timespec *start){
+  time_t secs = start->tv_sec;
+  long nsecs = start->tv_nsec;
+  clock_gettime(CLOCK_REALTIME, start);
+  secs = start->tv_sec - secs;
+  nsecs = start->tv_nsec - nsecs + (secs * 1000000000);
+  return nsecs;
 }
 
 //function that loads the image as a one-dimensional list of subpixel values from the ppm file
